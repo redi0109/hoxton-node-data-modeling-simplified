@@ -10,19 +10,13 @@ app.use(express.json());
 
 const port = 4000;
 
-
-
 const getApplicantById = db.prepare(`
     SELECT * FROM applicants WHERE id = @id;
 `);
 
-
-
 const getInterviewerById = db.prepare(`
     SELECT * FROM interviewers WHERE id = @id;
 `);
-
-
 
 const getInterviewersForApplicant = db.prepare(`
     SELECT interviewers.* FROM interviewers
@@ -30,51 +24,35 @@ const getInterviewersForApplicant = db.prepare(`
     WHERE interviews.applicantId = @applicantId;
 `);
 
-
-
 const getApplicantsForInterviewer = db.prepare(`
     SELECT applicants.* FROM applicants
     JOIN interviews ON applicants.id = interviews.applicantId
     WHERE interviews.interviewerId = @interviewerId;
 `);
 
-
-
 const getInterviewsForApplicant = db.prepare(`
     SELECT * FROM interviews WHERE applicantId = @applicantId;
 `);
-
-
 
 const getInterviewsForInterviewer = db.prepare(`
     SELECT * FROM interviews WHERE interviewerId = @interviewerId;
 `);
 
-
-
 const getInterviewById = db.prepare(`
     SELECT * FROM interviews WHERE id = @id;
 `);
-
-
 
 const createNewApplicant = db.prepare(`
     INSERT INTO applicants (name, email) VALUES (@name, @email);
 `);
 
-
-
 const createNewInterviewer = db.prepare(`
     INSERT INTO interviewers (name, email) VALUES (@name, @email);
 `);
 
-
-
 const createNewInterview = db.prepare(`
     INSERT INTO interviews (applicantId, interviewerId, date, result) VALUES (@applicantId, @interviewerId, @date, @result);
 `);
-
-
 
 //Get
 
@@ -94,8 +72,6 @@ app.get("/applicants/:id", (req, res) => {
   }
 });
 
-
-
 app.get("/interviewers/:id", (req, res) => {
   const interviewer = getInterviewerById.get(req.params);
 
@@ -111,8 +87,6 @@ app.get("/interviewers/:id", (req, res) => {
     res.status(400).send("Interviewer not found");
   }
 });
-
-
 
 app.get("/interviews/:id", (req, res) => {
   const interview = getInterviewById.get(req.params);
@@ -130,8 +104,6 @@ app.get("/interviews/:id", (req, res) => {
   }
 });
 
-
-
 //post
 
 app.post("/applicants", (req, res) => {
@@ -141,10 +113,10 @@ app.post("/applicants", (req, res) => {
   const errors: string[] = [];
 
   if (typeof name !== "string") {
-    errors.push("Name is missing or not a string");
+    errors.push("Name is missing or is not a string");
   }
   if (typeof email !== "string") {
-    errors.push("Email is missing or not a string");
+    errors.push("Email is missing or is not a string");
   }
 
   if (errors.length === 0) {
@@ -165,10 +137,10 @@ app.post("/interviewers", (req, res) => {
   const errors: string[] = [];
 
   if (typeof name !== "string") {
-    errors.push("Name is missing or not a string");
+    errors.push("Name is missing or is not a string");
   }
   if (typeof email !== "string") {
-    errors.push("Email is missing or not a string");
+    errors.push("Email is missing or is not a string");
   }
 
   if (errors.length === 0) {
@@ -191,16 +163,16 @@ app.post("/interviews", (req, res) => {
   const errors: string[] = [];
 
   if (typeof applicantId !== "number") {
-    errors.push("ApplicantId is missing or not a number");
+    errors.push("ApplicantId is missing or is not a number");
   }
   if (typeof interviewerId !== "number") {
-    errors.push("InterviewerId is missing or not a number");
+    errors.push("InterviewerId is missing or is not a number");
   }
   if (typeof date !== "string") {
-    errors.push("Date is missing or not a string");
+    errors.push("Date is missing or is not a string");
   }
   if (typeof result !== "number") {
-    errors.push("Result is missing or not a string");
+    errors.push("Result is missing or is not a string");
   }
 
   if (errors.length === 0) {
@@ -216,6 +188,142 @@ app.post("/interviews", (req, res) => {
     res.status(400).send({ error: errors });
   }
 });
+
+//employees
+const getEmployees = db.prepare(`
+    SELECT * FROM employees;
+`);
+
+const getEmployeesById = db.prepare(`
+SELECT * FROM employees WHERE id = ?;
+`);
+
+const createEmployees = db.prepare(`
+    INSERT INTO employees (name, email, position, companyId) VALUES (?, ?, ?, ?);
+`);
+
+const deleteEmployee = db.prepare(`
+DELETE FROM employees WHERE id = ?;
+`);
+
+
+
+
+
+app.get("/employees", (req, res) => {
+  const employees = getEmployees.all();
+  for (let employee of employees) {
+    employee.companies = getCompaniesById.get(employee.companyId);
+  }
+  res.send(employees);
+});
+
+app.get("/employees/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const employee = getEmployeesById.get(id);
+  if (employee) {
+    employee.companies = getCompaniesById.get(employee.companyId);
+    res.send(employee);
+  } else {
+    res.status(404).send({ error: "Employee not found" });
+  }
+});
+
+app.post("/employees", (req, res) => {
+  const name = req.body.name;
+  const email = req.body.email;
+  const position = req.body.position;
+  const companyId = req.body.companyId;
+  let errors: string[] = [];
+
+  if (typeof name !== "string") {
+    errors.push("Name is missing or is not a string");
+  }
+  if (typeof email !== "string") {
+    errors.push("City is missing or is not a string");
+  }
+  if (typeof position !== "string") {
+    errors.push("Position is missing or is not a string");
+  }
+  if (typeof companyId !== "number") {
+    errors.push("Company Id is missing or is not a number");
+  }
+
+  if (errors.length === 0) {
+    const employeeInfo = createEmployees.run(name, email, position, companyId);
+    const newEmployee = getEmployeesById.get(employeeInfo.lastInsertRowid);
+    res.send(newEmployee);
+  } else {
+    res.status(400).send({ errors: errors });
+  }
+});
+
+//companies
+
+const getCompanies = db.prepare(`
+    SELECT * FROM companies;
+`);
+
+const getCompaniesById = db.prepare(`
+SELECT * FROM companies WHERE id = ?;
+`);
+
+const createCompanies = db.prepare(`
+    INSERT INTO companies (name, city) VALUES (?, ?);
+`);
+
+const getEmployeesforCompanies = db.prepare(`
+    SELECT * FROM employees WHERE companyId = ?;
+`);
+
+const deleteCompany = db.prepare(`
+DELETE FROM companies WHERE id = ?;
+`);
+
+
+
+app.get('/companies', (req, res) => {
+    const companies = getCompanies.all()
+    for(let company of companies){
+        company.employees = getEmployeesforCompanies.all(company.id)
+    }
+    res.send(companies)
+})
+
+app.get('/companies/:id', (req, res) => {
+    const id = Number(req.params.id)
+    const company = getCompaniesById.get(id)
+    if (company) {
+        company.employees = getEmployeesforCompanies.all(company.id)
+      res.send(company)
+    } else {
+      res.status(404).send({ error: 'Company not found' })
+    }
+})
+
+app.post('/companies', (req, res) => {
+    const name = req.body.name
+    const city = req.body.city
+      let errors: string[] = []
+      
+      if (typeof name !== 'string') {
+          errors.push('Name is missing or is not a string')
+        }
+      if(typeof city  !=='string') {
+          errors.push('City is missing or is not a string')
+      }
+     
+      if( errors.length === 0)  {
+        const companyInfo = createCompanies.run(name, city)
+        const newCompany = getCompaniesById.get(companyInfo.lastInsertRowid)
+        res.send(newCompany)
+      }
+      else {
+          res.status(400).send({ errors: errors })
+        }
+})
+
+
 
 app.listen(port, () => {
   console.log(`Server is running on port: https://localhost:${port}`);

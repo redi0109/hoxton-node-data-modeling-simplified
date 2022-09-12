@@ -9,6 +9,7 @@ type Applicants = {
 type Interviewers = {
   name: string;
   email: string;
+  companyId: number;
 };
 
 type Interviews = {
@@ -16,6 +17,18 @@ type Interviews = {
   interviewerId: number;
   date: string;
   result: string;
+};
+
+type Companies = {
+  name: string;
+  city: string;
+};
+
+type Employees = {
+  name: string;
+  email: string;
+  position: string;
+  companyId: number;
 };
 
 const applicants: Applicants[] = [
@@ -66,18 +79,22 @@ const interviewers: Interviewers[] = [
   {
     name: "Nicolas Marcora",
     email: "nicolasmarcora@gmail.com",
+    companyId: 1,
   },
   {
     name: "Geri Cupi",
     email: "gericupi@gmail.com",
+    companyId: 2,
   },
   {
     name: "Mark Zuckerberg",
     email: "markzuckerberg@gmail.com",
+    companyId: 1,
   },
   {
     name: "Elon Musk",
     email: "elonmusk@gmail.com",
+    companyId: 2,
   },
 ];
 
@@ -176,7 +193,7 @@ for (let interview of interviews) {
   createNewInterview.run(interview);
 }
 
-const companies = [
+const companies: Companies[] = [
   { name: "TWIG", city: "Tirane" },
   { name: "RediTECH", city: "VLore" },
 ];
@@ -202,3 +219,49 @@ const createCompany = db.prepare(`
     `);
 
 for (let company of companies) createCompany.run(company);
+
+const employees: Employees[] = [
+  {
+    name: "Albi",
+    email: "Albi@gmail.com",
+    position: "CEO",
+    companyId: 1,
+  },
+  {
+    name: "Erblin",
+    email: "erblin@gmail.com",
+    position: "Developer",
+    companyId: 2,
+  },
+  {
+    name: "Andi",
+    email: "andi@gmail.com",
+    position: "Graphic designer",
+    companyId: 2,
+  },
+];
+
+const dropEmployeesTable = db.prepare(`
+DROP TABLE IF EXISTS employees;
+`);
+dropEmployeesTable.run();
+
+const createEmployeesTable = db.prepare(`
+CREATE TABLE IF NOT EXISTS employees(
+id INTEGER,
+name TEXT NOT NULL,
+email TEXT NOT NULL,
+position TEXT NOT NULL,
+companyId INTEGER,  
+PRIMARY KEY (id)
+FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+);
+`);
+
+createEmployeesTable.run();
+
+const createEmployee = db.prepare(`
+INSERT INTO employees (name, email, position, companyId) VALUES (@name, @email, @position, @companyId);
+`);
+
+for (let employee of employees) createEmployee.run(employee);
